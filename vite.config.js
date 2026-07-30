@@ -3,6 +3,11 @@ import { svelte } from '@sveltejs/vite-plugin-svelte'
 
 export default defineConfig({
   plugins: [svelte()],
+  // Relative asset URLs so the build works both at the domain root and under
+  // the GitHub Pages project path (easierbycode.com/racer-intro/). Phaser's
+  // loader already resolves 'assets/*' against the document URL, so the two
+  // stay consistent.
+  base: './',
   // 5velte-ph4ser ships raw .svelte.ts source (no build output), and the dep
   // pre-bundler compiles those without stripping TypeScript first. Excluding it
   // routes the package through the normal transform pipeline instead.
