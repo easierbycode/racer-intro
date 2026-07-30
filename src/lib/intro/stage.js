@@ -228,7 +228,7 @@ export function buildStage(scene) {
   glowEcho(
     () => add(scene.add.image(48, 396, 'stage-wreck-car').setOrigin(0)),
     114,
-    { alpha: 0.75, gap: 3 }
+    { alpha: 0.75, gap: 1.6 }
   )
   add(scene.add.image(48, 396, 'stage-wreck-car').setOrigin(0))
 
@@ -373,8 +373,12 @@ export function buildStage(scene) {
     })
   }
 
-  // Foreground tire, dead center like the recording — right of the fire, so
-  // its left arc catches the light (the echo hugs the circle, no hard line).
+  // Foreground tire, dead center like the recording — but it doesn't start
+  // there. launchTire() (scene.js fires it at the stage reveal) pops it off
+  // the trailer's kicked-up wheels; it arcs down the road at the camera,
+  // growing as it closes, bounces out its energy and thumps to rest. Every
+  // ground impact bumps the camera, scaled to how hard it lands. The glow
+  // echoes are re-aimed each frame so the lit arc keeps facing the fire.
   shape('stage-tire', 66, 66, (g) => {
     g.fillStyle(0x0b0b10, 1)
     g.fillCircle(33, 33, 31)
@@ -383,11 +387,103 @@ export function buildStage(scene) {
     g.fillStyle(0x0b0b10, 1)
     g.fillCircle(33, 33, 6)
   })
-  glowEcho(() => add(scene.add.image(414, 452, 'stage-tire')), 414, {
-    alpha: 0.65,
-    gap: 2.6,
-  })
-  add(scene.add.image(414, 452, 'stage-tire'))
+  const TIRE = {
+    start: { x: 350, y: 408, scale: 0.45 }, // at the trailer's rear wheels
+    rest: { x: 414, y: 452, scale: 1 }, //    dead center foreground
+    launch: { vx: 55, vy: -300 }, //          px/s kick off the wreck
+    gravity: 820, //                          px/s²
+    restitution: 0.45, //  bounce keeps this much of the impact speed
+    settleSpeed: 55, //    impact speed below which it stops bouncing
+  }
+  const TIRE_ECHO = { steps: 4, gap: 1.4, alpha: 0.65 }
+  const tireEchoes = []
+  for (let i = TIRE_ECHO.steps; i >= 1; i--) {
+    const e = scene.add
+      .image(TIRE.rest.x, TIRE.rest.y, 'stage-tire')
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setVisible(false)
+    e.setTint(0xffc03e).setTintMode(Phaser.TintModes.FILL)
+    e.glowBase = TIRE_ECHO.alpha * (1 - (i - 1) / TIRE_ECHO.steps)
+    e.glowSeed = Math.random() * Math.PI * 2
+    e.echoStep = i
+    glows.push(e)
+    tireEchoes.push(e)
+    add(e)
+  }
+  const tire = add(
+    scene.add.image(TIRE.rest.x, TIRE.rest.y, 'stage-tire').setVisible(false)
+  )
+  const tireState = { mode: 'idle', delay: 0, vx: 0, vy: 0 }
+
+  function launchTire(delayMs = 0) {
+    tireState.mode = 'wait'
+    tireState.delay = delayMs
+    tire
+      .setVisible(false)
+      .setPosition(TIRE.start.x, TIRE.start.y)
+      .setScale(TIRE.start.scale)
+    for (const e of tireEchoes) e.setVisible(false)
+  }
+
+  function updateTire(dt) {
+    if (tireState.mode === 'idle') return
+    if (tireState.mode === 'wait') {
+      tireState.delay -= dt * 1000
+      if (tireState.delay > 0) return
+      tireState.mode = 'fly'
+      tireState.vx = TIRE.launch.vx
+      tireState.vy = TIRE.launch.vy
+      tire.setVisible(true)
+      scene.cameras.main.shake(150, 0.004) // the crack that frees the wheel
+    }
+    if (tireState.mode === 'fly') {
+      // Progress toward the camera is read off horizontal travel: it slides
+      // the floor line down the screen and the tire's scale up in lockstep,
+      // which is what sells the approach.
+      tireState.vy += TIRE.gravity * dt
+      tire.x += tireState.vx * dt
+      tire.y += tireState.vy * dt
+      const p = Phaser.Math.Clamp(
+        (tire.x - TIRE.start.x) / (TIRE.rest.x - TIRE.start.x),
+        0,
+        1
+      )
+      const floorY = Phaser.Math.Linear(TIRE.start.y, TIRE.rest.y, p)
+      tire.setScale(Phaser.Math.Linear(TIRE.start.scale, TIRE.rest.scale, p))
+      if (tireState.vy > 0 && tire.y >= floorY) {
+        tire.y = floorY
+        scene.cameras.main.shake( // impact kick, scaled to landing speed
+          Math.min(260, 90 + tireState.vy * 0.4),
+          Math.min(0.011, tireState.vy * 0.00003)
+        )
+        if (tireState.vy < TIRE.settleSpeed) {
+          tireState.mode = 'settle'
+        } else {
+          tireState.vy *= -TIRE.restitution
+          tireState.vx *= 0.6
+        }
+      }
+    } else if (tireState.mode === 'settle') {
+      // Ease the last few px into the resting spot the composition expects.
+      const k = Math.min(1, dt * 6)
+      tire.x += (TIRE.rest.x - tire.x) * k
+      tire.y += (TIRE.rest.y - tire.y) * k
+      tire.setScale(tire.scaleX + (TIRE.rest.scale - tire.scaleX) * k)
+      if (Math.abs(tire.x - TIRE.rest.x) < 0.4) {
+        tire.setPosition(TIRE.rest.x, TIRE.rest.y).setScale(TIRE.rest.scale)
+        tireState.mode = 'idle'
+      }
+    }
+    const dir = tire.x < LIGHT_X ? 1 : -1 // lit arc faces the fire
+    for (const e of tireEchoes) {
+      e.setVisible(tire.visible)
+        .setPosition(
+          tire.x + dir * TIRE_ECHO.gap * e.echoStep * tire.scaleX,
+          tire.y
+        )
+        .setScale(tire.scaleX)
+    }
+  }
 
   // Small flame layer in front, for depth. Additive blend swallows the
   // atlas frames' opaque smoke top, so only the fire itself reads.
@@ -447,6 +543,8 @@ export function buildStage(scene) {
   }
 
   function update(time, delta) {
+    // Clamped so a tab-switch hitch can't fling the tire through the floor.
+    updateTire(Math.min(delta, 50) / 1000)
     for (let i = 0; i < flames.length; i++) {
       const f = flames[i]
       f.tilePositionX += f.driftSpeed * delta
@@ -467,5 +565,5 @@ export function buildStage(scene) {
     }
   }
 
-  return { root, update }
+  return { root, update, launchTire }
 }

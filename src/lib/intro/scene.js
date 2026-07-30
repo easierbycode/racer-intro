@@ -15,7 +15,7 @@ const CAR_LOOKAHEAD = 2400 // how far up the road the car aims, world units
 // Per-step offset of the crash rim-light silhouettes. Five echoes, so this is
 // how far the yellow contour reaches past the car on the fire's side — kept
 // tight so it reads as an edge catching the light, not a flame off the flank.
-const CAR_ECHO_STEP = 1.2
+const CAR_ECHO_STEP = 0.7
 
 // The rival that gets between us and the truck. It starts ahead in the left
 // lane; we reel it in, it cuts at us, we flinch right, it bails back left and
@@ -515,6 +515,10 @@ export function createIntro({ onphase = () => {} } = {}) {
         setRacerVisible(false)
         for (const b of S.booms) b.setVisible(false)
         S.stage.root.setVisible(true)
+        // Arm the tire pop-off now (it also clears the previous run's tire
+        // from the reveal); the delay spans the rest of the white so it
+        // launches a beat after the stage is fully in view.
+        S.stage.launchTire(T.flashHold + T.flashOut + 600)
         const cam = scene.cameras.main
         cam.panEffect?.reset()
         cam.zoomEffect?.reset()

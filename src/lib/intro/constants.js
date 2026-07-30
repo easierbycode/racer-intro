@@ -49,7 +49,7 @@ export const RACE = {
 }
 
 export const UI = {
-  font: '"Courier New", ui-monospace, monospace',
+  font: 'Orbitron, "Courier New", ui-monospace, monospace',
   cjkFont: '"Yu Gothic", "MS Gothic", "Hiragino Kaku Gothic ProN", sans-serif',
 }
 
