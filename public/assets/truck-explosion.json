@@ -1,0 +1,135 @@
+{
+  "frames": {
+    "k_00610074006c00610073005f00730030": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 104
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 9,
+        "y": 23,
+        "w": 73,
+        "h": 58
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 104
+      }
+    },
+    "k_00610074006c00610073005f00730031": {
+      "frame": {
+        "x": 92,
+        "y": 0,
+        "w": 92,
+        "h": 104
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 6,
+        "y": 14,
+        "w": 79,
+        "h": 76
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 104
+      }
+    },
+    "k_00610074006c00610073005f00730032": {
+      "frame": {
+        "x": 184,
+        "y": 0,
+        "w": 92,
+        "h": 104
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 3,
+        "y": 11,
+        "w": 85,
+        "h": 81
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 104
+      }
+    },
+    "k_00610074006c00610073005f00730033": {
+      "frame": {
+        "x": 276,
+        "y": 0,
+        "w": 92,
+        "h": 104
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 3,
+        "y": 9,
+        "w": 85,
+        "h": 86
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 104
+      }
+    },
+    "k_00610074006c00610073005f00730034": {
+      "frame": {
+        "x": 368,
+        "y": 0,
+        "w": 92,
+        "h": 104
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 2,
+        "y": 0,
+        "w": 87,
+        "h": 103
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 104
+      }
+    },
+    "k_00610074006c00610073005f00730035": {
+      "frame": {
+        "x": 460,
+        "y": 0,
+        "w": 92,
+        "h": 104
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 92,
+        "h": 104
+      },
+      "sourceSize": {
+        "w": 92,
+        "h": 104
+      }
+    }
+  },
+  "meta": {
+    "app": "Evil Invaders Atlas Builder",
+    "version": "1.0",
+    "image": "atlas.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 2048,
+      "h": 104
+    },
+    "scale": "1"
+  }
+}
