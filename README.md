@@ -33,6 +33,7 @@ camera FX, phase timing) is Phaser. So debugging goes through `window.__racer`:
 | live site | [`?debug=1`](https://easierbycode.com/racer-intro/?debug=1) — Svelte's runtime dev mode (readable warnings instead of error-code URLs) + `window.__racer` |
 | live site, deeper | [`/debug/`](https://easierbycode.com/racer-intro/debug/) — a second artifact: **unminified, sourcemapped, dev-compiled**. Breakpoints in real `scene.js`/`road.js` source, `__svelte_meta` on elements, no query param needed |
 | dev server | `npm run dev`, then **alt-x** — the vite-plugin-svelte inspector; hover an element to see its source, click to open it in your editor |
+| dev server | the **Vite DevTools drawer** at the bottom of the page → **Svelte** tab: component tree with live props/state, reactive dependency graph, render profiler ([vite-devtools-svelte](https://github.com/baseballyama/vite-devtools-svelte)) |
 
 ```js
 __racer.S            // live state: phase, speed, camZ, car, truck, stage, road…
@@ -45,6 +46,16 @@ __racer.reset()      // restart the whole sequence
 
 `crash()` / `flash()` are the time-savers — reach a late phase from the console
 instead of sitting through the mosaic and the race on every reload.
+
+The devtools plugin also prints an MCP endpoint on dev-server startup, so
+Claude Code can query the component/state data directly:
+
+```sh
+claude mcp add --transport http svelte http://localhost:5173/__svelte-devtools/mcp --header x-svelte-devtools-token:<token>
+```
+
+Both dev-server tools are registered only when `command === 'serve'`, so
+neither deployed artifact contains a byte of them.
 
 Both artifacts are built by `npm run build:all` (order matters: `build` empties
 `dist/` first). The debug build is driven by `.env.debug` setting

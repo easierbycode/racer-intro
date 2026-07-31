@@ -1,8 +1,10 @@
 import { fileURLToPath } from 'node:url'
+import { DevTools } from '@vitejs/devtools'
 import { defineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
+import { svelteDevtools } from 'vite-devtools-svelte'
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ command, mode }) => {
   /*
    * `vite build --mode debug` loads .env.debug (NODE_ENV=development), which
    * flips vite's isProduction — that, not --mode by itself, is what lets
@@ -11,9 +13,25 @@ export default defineConfig(({ mode }) => {
    * at /racer-intro/debug/: same game, unminified, sourcemapped, dev-compiled.
    */
   const DEBUG = mode === 'debug'
+  const SERVE = command === 'serve'
 
   return {
     plugins: [
+      /*
+       * Svelte 5 devtools — a component tree with live props/state, a reactive
+       * dependency graph, and a render profiler, in the Vite DevTools drawer
+       * at the bottom of the page. This is what replaces the Svelte DevTools
+       * browser extension, which only speaks the Svelte 4 protocol and reports
+       * "No Svelte app detected" on any Svelte 5 app.
+       *
+       * svelteDevtools() rewrites `svelte/internal/client` to trace component
+       * lifecycle and signals, so it has to transform ahead of the Svelte
+       * compiler — hence its position before svelte(). DevTools() is the host
+       * UI that renders the panels; without it the plugin loads but nothing
+       * shows. Both are dev-server only, and dropping them from the array
+       * entirely on build keeps the two deployed artifacts untouchable.
+       */
+      ...(SERVE ? [svelteDevtools(), DevTools()] : []),
       svelte({
         // The inspector plugin is apply:'serve', so it is stripped from every
         // build and needs no DEBUG gating. alt-x over an element opens its
