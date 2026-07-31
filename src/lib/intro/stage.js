@@ -233,10 +233,29 @@ export function buildStage(scene) {
   add(scene.add.image(48, 396, 'stage-wreck-car').setOrigin(0))
 
   // The tipped trailer, back down the road (see WRECK above).
+  const WRECK_ANGLE = -9
   const wreck = scene.add
     .container(WRECK.x, WRECK.y)
-    .setAngle(-9)
+    .setAngle(WRECK_ANGLE)
     .setScale(WRECK.scale)
+  /*
+   * Wheels, kicked up. The leftmost is the one that comes off, so it is drawn
+   * into its own graphic rather than baked into the trailer — the tire launch
+   * below hides it at the instant the loose tire appears, and the trailer is
+   * left standing on the two it kept.
+   */
+  const TRAILER_WHEELS = [
+    { x: -92, y: 40 },
+    { x: -52, y: 42 },
+    { x: 64, y: 44 },
+  ]
+  const WHEEL_R = 17
+  const drawWheel = (g, { x, y }) => {
+    g.fillStyle(0x08080c, 1)
+    g.fillCircle(x, y, WHEEL_R)
+    g.fillStyle(0x2c3038, 1)
+    g.fillCircle(x, y, 7)
+  }
   const trailer = scene.add.graphics()
   trailer.fillStyle(0x525c6e, 1) // underside edge
   trailer.fillRect(-134, 24, 268, 18)
@@ -245,15 +264,41 @@ export function buildStage(scene) {
   trailer.lineStyle(2, 0x5c6474, 1)
   trailer.strokeRect(-134, -62, 268, 88)
   for (const x of [-70, -4, 62]) trailer.lineBetween(x, -60, x, 24) // panel seams
-  trailer.fillStyle(0x08080c, 1) // wheels, kicked up
-  trailer.fillCircle(-92, 40, 17)
-  trailer.fillCircle(-52, 42, 17)
-  trailer.fillCircle(64, 44, 17)
-  trailer.fillStyle(0x2c3038, 1)
-  trailer.fillCircle(-92, 40, 7)
-  trailer.fillCircle(-52, 42, 7)
-  trailer.fillCircle(64, 44, 7)
+  for (const w of TRAILER_WHEELS.slice(1)) drawWheel(trailer, w)
+  // The empty wheel well the pop-off leaves behind — a dark cavity with the
+  // sheared axle stub at its centre. Drawn into the trailer beneath popWheel,
+  // whose radius-17 footprint fully covers the radius-13 well, so nothing
+  // toggles: hiding the wheel IS what reveals the well.
+  {
+    const { x, y } = TRAILER_WHEELS[0]
+    trailer.fillStyle(0x101318, 1)
+    trailer.fillCircle(x, y, 13)
+    trailer.fillStyle(0x3a4152, 1)
+    trailer.fillCircle(x, y, 4)
+  }
   wreck.add(trailer)
+  const popWheel = scene.add.graphics()
+  drawWheel(popWheel, TRAILER_WHEELS[0])
+  wreck.add(popWheel)
+
+  /*
+   * Where that wheel actually sits on stage, pushed through the wreck's
+   * rotate + scale. Derived rather than eyeballed so retuning WRECK keeps the
+   * tire leaving from the axle it came off, at the size it was on the trailer
+   * — the handoff then reads as the wheel itself breaking loose, not a second
+   * tire appearing nearby. 'stage-tire' draws a radius-31 circle.
+   */
+  const POP_WHEEL = (() => {
+    const rad = Phaser.Math.DegToRad(WRECK_ANGLE)
+    const cos = Math.cos(rad)
+    const sin = Math.sin(rad)
+    const { x, y } = TRAILER_WHEELS[0]
+    return {
+      x: WRECK.x + (x * cos - y * sin) * WRECK.scale,
+      y: WRECK.y + (x * sin + y * cos) * WRECK.scale,
+      scale: (WHEEL_R * WRECK.scale) / 31,
+    }
+  })()
   // Cab — right of the flames, so its left side catches the light.
   shape('stage-cab', 66, 52, (g) => {
     g.fillStyle(0x3c4658, 1)
@@ -388,10 +433,10 @@ export function buildStage(scene) {
     g.fillCircle(33, 33, 6)
   })
   const TIRE = {
-    start: { x: 350, y: 408, scale: 0.45 }, // at the trailer's rear wheels
-    rest: { x: 414, y: 452, scale: 1 }, //    dead center foreground
-    launch: { vx: 55, vy: -300 }, //          px/s kick off the wreck
-    gravity: 820, //                          px/s²
+    start: POP_WHEEL, //  the trailer axle it breaks off, derived above
+    rest: { x: 414, y: 452, scale: 1 }, // dead center foreground
+    launch: { vx: 55, vy: -300 }, //       px/s kick off the wreck
+    gravity: 820, //                       px/s²
     restitution: 0.45, //  bounce keeps this much of the impact speed
     settleSpeed: 55, //    impact speed below which it stops bouncing
   }
@@ -423,6 +468,7 @@ export function buildStage(scene) {
       .setPosition(TIRE.start.x, TIRE.start.y)
       .setScale(TIRE.start.scale)
     for (const e of tireEchoes) e.setVisible(false)
+    popWheel.setVisible(true) // back on the trailer until it breaks loose
   }
 
   function updateTire(dt) {
@@ -433,8 +479,13 @@ export function buildStage(scene) {
       tireState.mode = 'fly'
       tireState.vx = TIRE.launch.vx
       tireState.vy = TIRE.launch.vy
+      // The handoff: the trailer loses the wheel on the same frame the loose
+      // tire takes over its position and size, so it reads as one object.
+      popWheel.setVisible(false)
       tire.setVisible(true)
-      scene.cameras.main.shake(150, 0.004) // the crack that frees the wheel
+      // The crack that tears the wheel free — same frame as the handoff, so
+      // the jolt, the empty well, and the airborne tire land as one beat.
+      scene.cameras.main.shake(180, 0.0075)
     }
     if (tireState.mode === 'fly') {
       // Progress toward the camera is read off horizontal travel: it slides
