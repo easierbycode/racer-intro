@@ -18,6 +18,8 @@ import { ensureDir } from '@std/fs'
 import { join } from '@std/path'
 import type { SceneSpec } from './scenes.ts'
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
 export interface DeterministicOptions {
   outDir: string
   /** Output frame rate — every rendered frame is exactly 1/fps apart. */
@@ -25,6 +27,16 @@ export interface DeterministicOptions {
   keepFrames?: boolean
   chromePath?: string
   chromeArgs?: string[]
+  /**
+   * Real-time grace period after load, before the virtual clock takes over.
+   * Asset loading runs on the network, not the page clock, so a game whose
+   * boot depends on downloads needs wall-clock time to finish them — step
+   * too early and the capture is all loading screen. Overridden per game
+   * with the catalog's `recorder.settleMs`.
+   */
+  settleMs?: number
+  /** Upper bound on the boot phase (default 45s). */
+  maxSettleMs?: number
 }
 
 export interface DeterministicResult {
@@ -113,6 +125,45 @@ export async function recordDeterministic(
     // A headless browser happily renders frame 0 in the fallback font —
     // wait for the real faces before the first step.
     await page.evaluate('document.fonts.ready.then(() => true)')
+
+    // Boot the game at real-time pace before capture starts.
+    //
+    // Asset downloads run on the network, which the virtual clock doesn't
+    // drive — but a loader only advances when its update loop runs, and
+    // that loop is rAF, which now only runs when we step it. So neither
+    // "wait without stepping" nor "step as fast as possible" boots the
+    // game: the first never processes the load queue, the second burns the
+    // whole capture window before the bytes arrive. Stepping while sleeping
+    // ~1/fps of real time gives the loader ticks AND the network time,
+    // exactly as if the game were running normally.
+    // The floor is settleMs; past that it keeps booting until the network
+    // goes quiet (or maxSettleMs), so a game pulling 20MB of atlases isn't
+    // filmed mid-loading-bar just because the default was tuned for a
+    // local dev server.
+    const settleMs = opts.settleMs ?? 3000
+    const maxSettleMs = opts.maxSettleMs ?? 45_000
+    const start = Date.now()
+    let idleSince: number | null = null
+    let inflight = 0
+    celestial.addEventListener('Network.requestWillBeSent', () => {
+      inflight++
+      idleSince = null
+    })
+    const settled = () => {
+      inflight = Math.max(0, inflight - 1)
+      if (inflight === 0) idleSince ??= Date.now()
+    }
+    celestial.addEventListener('Network.loadingFinished', settled)
+    celestial.addEventListener('Network.loadingFailed', settled)
+
+    while (true) {
+      const elapsed = Date.now() - start
+      if (elapsed >= maxSettleMs) break
+      const quiet = idleSince != null && Date.now() - idleSince > 750
+      if (elapsed >= settleMs && (quiet || inflight === 0)) break
+      await page.evaluate('window.__cmgStep()')
+      await sleep(1000 / fps)
+    }
 
     const maxTicks = Math.ceil((spec.maxMs / 1000) * fps)
     const tailTicks = Math.ceil(((spec.tailMs ?? 0) / 1000) * fps)
