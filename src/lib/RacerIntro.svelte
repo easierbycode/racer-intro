@@ -77,6 +77,15 @@
       parent={host}
       backgroundColor="#05060f"
       pixelArt={true}
+      audio={{
+        /*
+         * The intro is silent — nothing calls load.audio or sound.*. Without
+         * this Phaser still spins up a Web Audio context on boot, which the
+         * browser's autoplay policy then refuses until a user gesture, for
+         * the sole result of a console warning. Skip building it at all.
+         */
+        noAudio: true,
+      }}
       scale={{
         /*
          * FIT rather than ENVELOP: the canvas grows to whatever the viewport
