@@ -9,6 +9,9 @@ import { svelte } from '@sveltejs/vite-plugin-svelte'
 export default defineConfig({
   plugins: [svelte()],
   base: '/ui/',
+  // Vite would otherwise copy the repo's public/ (the game's sprite
+  // atlases) into the panel's output — 20-odd files the panel never loads.
+  publicDir: false,
   // Same reason as the game's vite config: 5velte-ph4ser ships raw
   // .svelte.ts source, which the dep pre-bundler can't compile.
   optimizeDeps: {

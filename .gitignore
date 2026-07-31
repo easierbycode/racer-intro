@@ -4,7 +4,10 @@ dist
 _fresh
 # recorder / transcode output
 out
-# UI bundle built into the Fresh app by `deno task ui:build`
-app/static/ui
+# NOTE: app/static/ui/ (the built control panel) is deliberately COMMITTED.
+# Deno Deploy builds the Fresh app with Deno, and building the panel needs
+# the npm toolchain (vite + vite-plugin-svelte + phaser), so the deployed
+# app can't produce it. Rebuild with `deno task ui:build` and commit the
+# result whenever ui/ changes.
 # saved Instagram device/session state (contains auth tokens)
 .ig-state.json
