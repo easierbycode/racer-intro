@@ -453,11 +453,10 @@ export function buildStage(scene) {
     e.echoStep = i
     glows.push(e)
     tireEchoes.push(e)
-    add(e)
   }
-  const tire = add(
-    scene.add.image(TIRE.rest.x, TIRE.rest.y, 'stage-tire').setVisible(false)
-  )
+  const tire = scene.add
+    .image(TIRE.rest.x, TIRE.rest.y, 'stage-tire')
+    .setVisible(false)
   const tireState = { mode: 'idle', delay: 0, vx: 0, vy: 0 }
 
   function launchTire(delayMs = 0) {
@@ -553,6 +552,13 @@ export function buildStage(scene) {
   } else {
     add(flameLayer(478, 70, 0.4, 0.03))
   }
+
+  // The tire and its glow echoes join the container here — created earlier
+  // (launchTire/updateTire close over them) but added above the flame layer,
+  // whose additive wash over the tire's lower half otherwise reads as the
+  // road showing through a transparent tire.
+  for (const e of tireEchoes) add(e)
+  add(tire)
 
   // Ryu — the left-side fighter, idling in front of the wreckage like the
   // original's pre-fight hold. He stands left of the fire, so his silhouette
