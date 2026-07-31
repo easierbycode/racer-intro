@@ -7,7 +7,16 @@
   let phase = $state(PHASE.BOOT)
   let host = $state() // the <Game> waits for this element so the canvas lands inside it
 
-  const intro = createIntro({ onphase: (p) => (phase = p) })
+  const intro = createIntro({
+    onphase: (p) => {
+      phase = p
+      // Recorder hook: tools/record (headless Chrome) can't reach Svelte
+      // state, so mirror the phase onto window and announce changes. The
+      // event lets the recorder await transitions instead of polling.
+      window.__racerPhase = p
+      window.dispatchEvent(new CustomEvent('racer:phase', { detail: p }))
+    },
+  })
 
   const inRace = $derived(
     phase === PHASE.MOSAIC || phase === PHASE.RACE || phase === PHASE.CRASH

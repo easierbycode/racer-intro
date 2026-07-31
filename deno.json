@@ -1,0 +1,26 @@
+{
+  "tasks": {
+    "record": "deno run -A tools/record/main.ts",
+    "transcode": "deno run -A tools/transcode/main.ts",
+    "post": "deno run -A tools/social/main.ts",
+    "pipeline": "deno run -A tools/pipeline.ts",
+    "slides": "deno run -A tools/slides/main.ts",
+    "ui:build": "npm run build:ui",
+    "check": "deno check tools"
+  },
+  "imports": {
+    "@astral/astral": "jsr:@astral/astral@^0.5.6",
+    "@std/cli": "jsr:@std/cli@^1.0.0",
+    "@std/encoding": "jsr:@std/encoding@^1.0.0",
+    "@std/fs": "jsr:@std/fs@^1.0.0",
+    "@std/path": "jsr:@std/path@^1.0.0"
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "out",
+    "app",
+    "src",
+    "public"
+  ]
+}

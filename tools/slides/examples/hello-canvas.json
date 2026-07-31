@@ -1,0 +1,8 @@
+{
+  "description": "Draw a glowing sunset road in 12 lines of canvas",
+  "commands": "const c = document.querySelector('canvas')\nconst g = c.getContext('2d')\n\nconst sky = g.createLinearGradient(0, 0, 0, 300)\nsky.addColorStop(0, '#07070d')\nsky.addColorStop(1, '#ff7a00')\ng.fillStyle = sky\ng.fillRect(0, 0, 480, 300)\n\ng.fillStyle = '#2c3444'\ng.beginPath()\ng.moveTo(240, 300)\ng.lineTo(120, 480)\ng.lineTo(360, 480)\ng.fill()",
+  "files": [
+    { "name": "index.html", "content": "<canvas width=480 height=480></canvas>\n<script src=\"road.js\"></script>" },
+    { "name": "road.js", "content": "" }
+  ]
+}

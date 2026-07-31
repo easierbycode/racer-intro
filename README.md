@@ -14,6 +14,79 @@ npm install
 npm run dev
 ```
 
+## Recording & social pipeline (Deno)
+
+The repo doubles as its own production line: Deno tools record the intro
+(or any browser scene) from headless Chrome, cut it for vertical social,
+and publish it.
+
+```sh
+deno task record --scene racer-intro     # → out/racer-intro.raw.mp4 (CFR 60, 1280x960)
+deno task transcode --input out/racer-intro.raw.mp4   # → 1080x1920 reel + cover.jpg
+deno task post --platform instagram --video out/racer-intro.reel.mp4 --caption "..."
+deno task post --platform tiktok --video out/racer-intro.reel.mp4
+deno task pipeline --scene racer-intro --post instagram,tiktok --caption "..."
+deno task slides --tutorial tools/slides/examples/hello-canvas.json   # typed-code tutorial video
+```
+
+- **record** ([tools/record](tools/record)) drives headless Chrome via
+  [astral](https://jsr.io/@astral/astral). The default **deterministic**
+  mode injects a virtual clock before any page script runs (frozen
+  `performance.now`/`rAF`, `preserveDrawingBuffer` forced on), steps the
+  game one exact 1/fps tick at a time, reads each finished frame off the
+  canvas at native resolution, and encodes the reel in a single pass —
+  no dropped frames ever, identical output every run, works for any
+  rAF-driven canvas game with zero game-side changes. `--mode screencast`
+  keeps the wall-clock CDP capture for pages animated by timers instead of
+  rAF. The intro reports its phase on `window.__racerPhase` (see
+  `RacerIntro.svelte`), so capture trims to the mosaic wipe and stops a few
+  PRESS-START blinks into the stage. Other games register a `SceneSpec` in
+  [tools/record/scenes.ts](tools/record/scenes.ts) (or use `--url`/`--duration`
+  ad hoc). ffmpeg must be on PATH (`FFMPEG`/`FFPROBE` env override — the
+  Windows-ARM64 story); if astral's pinned Chrome download won't run on
+  your box, point `RECORD_CHROME` (or `--chrome`) at an installed one.
+- **transcode** ([tools/transcode](tools/transcode)) makes the
+  Reels/TikTok-ready cut: H.264 high@4.1 + AAC (silence — the ingest
+  rejects soundless files), 1080x1920 with a blurred-fill (`--fill pad`
+  for bars), `+faststart`, plus a cover JPEG.
+- **post** ([tools/social](tools/social)) publishes. Instagram uses the
+  official Graph API container flow (env `IG_ACCESS_TOKEN`, `IG_USER_ID`) —
+  it only pulls from public URLs, so local files are served through an
+  ngrok tunnel automatically (or pass `--video-url` if hosted). TikTok uses
+  the Content Posting API (env `TIKTOK_ACCESS_TOKEN`); unaudited apps are
+  limited to `SELF_ONLY` visibility, the default. `--dry-run` everywhere.
+- **slides** ([tools/slides](tools/slides)) renders a coding-tutorial
+  typing video from a Tutorial JSON (same shape as
+  [pablo.gg's GPT-generated reels scripts](https://pablo.gg/en/blog/coding/creating-instagram-reels-coding-tutorials-automatically-with-openais-gpt/))
+  through the same recorder — the planned VS Code / Codespaces plugin will
+  emit these payloads (timed `steps` mode) at `POST /api/jobs`.
+
+## Control deck (Fresh 2.3 app)
+
+[app/](app) is a Fresh 2.3 app exposing all of the above as an arcade-style
+panel — itself built with `5velte-ph4ser` (Svelte 5 + Phaser 4) in
+[ui/](ui), bundled into `app/static/ui/`.
+
+```sh
+deno task ui:build        # bundle the panel (repo root)
+cd app && deno install && deno task dev    # http://localhost:8000
+```
+
+Buttons fire `POST /api/jobs`; locally jobs spawn the Deno tools as
+subprocesses and stream logs into the panel, with finished files listed
+from `out/`. On **Deno Deploy** (no ffmpeg/Chrome there) the same buttons
+dispatch the [record workflow](.github/workflows/record.yml) instead — set
+`GITHUB_TOKEN` (PAT with `actions:write`), `GITHUB_REPO`, and optionally
+`APP_TOKEN` (bearer token required for mutating API calls when set).
+
+**Auto-deploy on push:** create the app once in the
+[Deno Deploy](https://console.deno.com) dashboard → link this GitHub repo →
+set the app root to `app/` (the Fresh preset is auto-detected) → set the
+install command to `deno install && (cd .. && npm ci && npm run build:ui)`.
+Every push then builds and deploys — production from `main`, previews from
+branches. GitHub Pages deployment of the game itself already runs via
+[deploy.yml](.github/workflows/deploy.yml).
+
 ## Layout
 
 | file | what it does |
@@ -24,6 +97,9 @@ npm run dev
 | `src/lib/intro/stage.js` | the burning expressway set (fire wall, wreck, gantry sign, embers, smoke) |
 | `src/lib/intro/textures.js` | all placeholder art, generated at runtime — **and the swap points for ripped sheets** |
 | `src/lib/intro/constants.js` | every tuning knob: timings, road geometry, speeds, palette |
+| `tools/` | Deno CLIs: `record` (headless capture), `transcode` (9:16 cut), `social` (IG/TikTok), `slides` (tutorial videos), `pipeline.ts` (all of it) |
+| `app/` | Fresh 2.3 control-deck app (API routes + job runner), deploys to Deno Deploy |
+| `ui/` | the 5velte-ph4ser panel the app serves, built to `app/static/ui/` by `deno task ui:build` |
 
 ## Assets
 

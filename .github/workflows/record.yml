@@ -1,0 +1,107 @@
+name: Record scene
+
+# Runs the record → transcode → (optional) post pipeline headless. Trigger
+# it three ways: by hand from the Actions tab, from the control-deck app
+# when it's on Deno Deploy (workflow_dispatch via API), or from other
+# automation (repository_dispatch, type record).
+on:
+  workflow_dispatch:
+    inputs:
+      scene:
+        description: 'scene to record'
+        default: 'racer-intro'
+      post:
+        description: 'comma list of platforms to post to (instagram,tiktok), empty = none'
+        default: ''
+      caption:
+        description: 'caption for posts'
+        default: ''
+      dry-run:
+        description: 'validate posting without publishing'
+        type: boolean
+        default: true
+  repository_dispatch:
+    types: [record]
+
+jobs:
+  record:
+    runs-on: ubuntu-24.04
+    env:
+      SCENE: ${{ github.event.inputs.scene || github.event.client_payload.scene || 'racer-intro' }}
+      POST: ${{ github.event.inputs.post || github.event.client_payload.post || '' }}
+      CAPTION: ${{ github.event.inputs.caption || github.event.client_payload.caption || '' }}
+      DRY_RUN: ${{ github.event.inputs.dry-run || github.event.client_payload.dry-run || 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      # astral downloads a pinned Chrome-for-Testing (~150MB) — keep it
+      # between runs. The recorder passes --no-sandbox itself when CI is set
+      # (ubuntu-24.04's AppArmor blocks the downloaded Chrome's sandbox).
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/astral
+          key: astral-chrome-125.0.6400.0
+
+      - name: Build and serve the game
+        run: |
+          npm ci
+          npm run build
+          npx vite preview --port 4173 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:4173/ > /dev/null && break
+            sleep 1
+          done
+
+      # Instagram's Graph API pulls the video from a public URL, so posting
+      # from CI needs a tunnel — set the NGROK_AUTHTOKEN secret to enable it.
+      # TikTok uploads directly and needs nothing extra.
+      #
+      # `secrets` isn't available in a step-level `if:`, so the presence
+      # check happens inside the step. The token goes in via env rather than
+      # ${{ }} interpolation, which would splice it into the shell text.
+      - name: Set up ngrok (Instagram posting)
+        env:
+          NGROK_AUTHTOKEN: ${{ secrets.NGROK_AUTHTOKEN }}
+        run: |
+          if [ -z "$NGROK_AUTHTOKEN" ]; then
+            echo "no NGROK_AUTHTOKEN secret — skipping (Instagram posting will be unavailable)"
+            exit 0
+          fi
+          curl -sSL https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz | sudo tar xz -C /usr/local/bin
+          ngrok config add-authtoken "$NGROK_AUTHTOKEN"
+
+      - name: Record + transcode (+ post)
+        env:
+          RACER_URL: http://localhost:4173/
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+        run: |
+          ARGS=(--scene "$SCENE")
+          if [ -n "$POST" ]; then ARGS+=(--post "$POST"); fi
+          if [ -n "$CAPTION" ]; then ARGS+=(--caption "$CAPTION"); fi
+          if [ "$DRY_RUN" != "false" ]; then ARGS+=(--dry-run); fi
+          deno task pipeline "${ARGS[@]}"
+
+      # Keep the footage even when a posting stage fails.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ env.SCENE }}-recording
+          path: |
+            out/*.mp4
+            out/*.jpg
+            out/*.json
+          retention-days: 14

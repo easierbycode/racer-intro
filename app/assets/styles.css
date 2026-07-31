@@ -1,0 +1,72 @@
+/* CMG launcher look — Xbox-360-blade green on black (palette lifted from
+   cmg's static/dashboard.css) with Orbitron everywhere. */
+
+:root {
+  --green: #9cff6b;
+  --green-glow: #7cff4f;
+  --green-deep: #0e6a2b;
+  --blade-hi: #d9ffa6;
+  --yellow: #f6ff4a;
+  --text: #eaffd2;
+  --tile-edge: rgba(140, 255, 110, 0.55);
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(ellipse 80% 60% at 38% 55%, rgba(20, 90, 40, 0.45), transparent 70%),
+    radial-gradient(ellipse 60% 70% at 50% 50%, rgba(8, 40, 18, 0.85), #000 80%);
+  background-color: #000;
+  color: var(--green);
+  font-family: Orbitron, 'Courier New', ui-monospace, monospace;
+  -webkit-font-smoothing: antialiased;
+}
+
+.deck {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(420px, 640px);
+  gap: 24px;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+@media (max-width: 1000px) {
+  .deck {
+    grid-template-columns: 1fr;
+  }
+}
+
+.deck h1 {
+  grid-column: 1 / -1;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: var(--green);
+  text-shadow: 0 0 18px rgba(120, 255, 90, 0.5);
+  margin: 0;
+}
+
+.game-embed {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  border: 2px solid var(--tile-edge);
+  border-radius: 10px;
+  background: #000;
+  box-shadow: 0 0 24px rgba(120, 255, 90, 0.16);
+}
+
+#panel {
+  min-height: 560px;
+}
+
+#panel .panel-note {
+  padding: 24px;
+  border: 2px dashed var(--tile-edge);
+  border-radius: 10px;
+  color: var(--green-deep);
+  font-size: 14px;
+  line-height: 1.6;
+}
