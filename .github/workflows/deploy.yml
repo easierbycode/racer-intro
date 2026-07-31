@@ -29,7 +29,11 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run build
+      # Both artifacts: the production site, then the dev-compiled debug build
+      # into dist/debug/. Order matters — `build` empties dist/ first, which
+      # would wipe a pre-existing dist/debug. upload-pages-artifact takes the
+      # whole dist tree, so /debug/ ships with it.
+      - run: npm run build:all
 
       - uses: actions/configure-pages@v5
 

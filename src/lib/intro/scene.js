@@ -1,4 +1,8 @@
 import Phaser from 'phaser'
+// Imported by path rather than as 'esm-env': that package is only a transitive
+// dependency of Svelte, and the alias that points it here lives in the root
+// vite config, which ui/vite.config.js does not share.
+import { DEV } from '../esm-env-debug.js'
 import { GAME_H, GAME_W, PHASE, RACE, ROAD, T, UI } from './constants.js'
 import { PseudoRoad } from './road.js'
 import { buildStage } from './stage.js'
@@ -326,6 +330,31 @@ export function createIntro({ onphase = () => {} } = {}) {
     scene.events.on(Phaser.Scenes.Events.UPDATE, (time, delta) =>
       update(scene, time, delta)
     )
+
+    /*
+     * Console handle for poking at a deployed build — on the ordinary site
+     * under ?debug=1, and unconditionally on the /debug/ artifact.
+     *
+     * Everything that actually goes wrong in this intro is Phaser, not Svelte:
+     * atlas frame ordering, road projection, camera FX, phase timing. None of
+     * it is reachable from any Svelte devtool, so this is what makes the live
+     * page inspectable. S is the live state object (never a snapshot), and the
+     * calls jump the sequence so a late phase can be reached without sitting
+     * through the mosaic and the race on every reload.
+     *
+     * window.__racerPhase stays where it is — tools/record drives off it.
+     */
+    if (DEV) {
+      window.__racer = {
+        S, //     phase, speed, camZ, car, truck, enemy, stage, road, booms…
+        scene, // → scene.game, scene.cameras, scene.tweens, scene.textures
+        reset: () => reset(scene),
+        crash: () => crash(scene), //      skip the race, straight to the fireball
+        flash: () => whiteOut(scene), //   straight to the burning stage
+        boom: () => spawnFireball(scene),
+        tire: (ms = 0) => S.stage.launchTire(ms), // re-fire the wheel pop-off
+      }
+    }
 
     reset(scene)
   }

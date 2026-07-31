@@ -14,6 +14,44 @@ npm install
 npm run dev
 ```
 
+## Debugging
+
+**Svelte DevTools does not work here, and can't be made to.** The extension
+requires Svelte `^4.0.0`: it listens for the `SvelteRegisterComponent` /
+`SvelteDOMInsert` events the Svelte 3/4 compiler emitted, and Svelte 5 removed
+that protocol entirely ([svelte#11389](https://github.com/sveltejs/svelte/issues/11389)
+tracks adding a replacement; still open). It reports "No Svelte app detected"
+on any Svelte 5 page. There is no Svelte 5 devtools extension today.
+
+It would show little here anyway — `<Game>`/`<Scene>`/`<Text>` render snippets,
+not DOM, so the entire Svelte-rendered tree is `<main>` and `<div class="frame">`.
+Everything that actually goes wrong (atlas frame ordering, road projection,
+camera FX, phase timing) is Phaser. So debugging goes through `window.__racer`:
+
+| where | how |
+| --- | --- |
+| live site | [`?debug=1`](https://easierbycode.com/racer-intro/?debug=1) — Svelte's runtime dev mode (readable warnings instead of error-code URLs) + `window.__racer` |
+| live site, deeper | [`/debug/`](https://easierbycode.com/racer-intro/debug/) — a second artifact: **unminified, sourcemapped, dev-compiled**. Breakpoints in real `scene.js`/`road.js` source, `__svelte_meta` on elements, no query param needed |
+| dev server | `npm run dev`, then **alt-x** — the vite-plugin-svelte inspector; hover an element to see its source, click to open it in your editor |
+
+```js
+__racer.S            // live state: phase, speed, camZ, car, truck, stage, road…
+__racer.scene        // the Phaser scene → .game, .cameras, .tweens, .textures
+__racer.crash()      // skip the race, jump straight to the fireball
+__racer.flash()      // jump straight to the burning stage
+__racer.tire(0)      // re-fire the wheel pop-off
+__racer.reset()      // restart the whole sequence
+```
+
+`crash()` / `flash()` are the time-savers — reach a late phase from the console
+instead of sitting through the mosaic and the race on every reload.
+
+Both artifacts are built by `npm run build:all` (order matters: `build` empties
+`dist/` first). The debug build is driven by `.env.debug` setting
+`NODE_ENV=development`, which is what flips vite's `isProduction` — `--mode`
+alone does not, and vite-plugin-svelte force-clears `compilerOptions.dev` for
+production builds.
+
 ## Recording & social pipeline (Deno)
 
 The repo doubles as its own production line: Deno tools record the intro
