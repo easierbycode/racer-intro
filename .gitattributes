@@ -1,0 +1,25 @@
+# Line endings: the repo stores LF, so check LF out everywhere.
+#
+# Without this, core.autocrlf=true hands Windows a CRLF working tree while git
+# keeps LF blobs. Nothing is wrong in the repo, but `deno fmt` writes LF, so
+# `deno fmt --check` fails on every file it looks at — and running `deno fmt`
+# to "fix" it produces no git diff at all, which is thoroughly confusing. It
+# also leaves files permanently stat-dirty (the CRLF and LF forms differ in
+# size, so git re-flags them as modified until the content is re-read).
+#
+# eol=lf overrides core.autocrlf, so this holds regardless of a contributor's
+# local git config.
+* text=auto eol=lf
+
+# Binary assets: never apply line-ending conversion. `text=auto` already
+# detects these by content, but spelling them out keeps the heuristic well
+# away from the sprite atlases, the bitmap font and any recordings.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.mp4  binary
+*.webm binary
+*.woff  binary
+*.woff2 binary
