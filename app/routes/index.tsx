@@ -20,8 +20,7 @@ export default define.page(function Home() {
       />
       <div id='panel'>
         <div class='panel-note'>
-          panel bundle not found — build it with{' '}
-          <code>deno task ui:build</code>{' '}
+          panel bundle not found — build it with <code>deno task ui:build</code>{' '}
           at the repo root (it lands in app/static/ui/), then reload.
         </div>
       </div>

@@ -12,6 +12,14 @@
     "start": "deno serve -A _fresh/server.js",
     "update": "deno run -A -r jsr:@fresh/update ."
   },
+  // Match the style the app is actually written in. Without this, `deno fmt`
+  // defaults to double quotes and semicolons and wants to rewrite every file,
+  // which made `deno task check` fail out of the box and useless as a gate.
+  // lineWidth 92, not the default 80: at 80 fmt rewraps a dozen lines this app
+  // already fits comfortably, and at 94+ it starts *joining* lines that were
+  // deliberately split. 91-93 is the window where it leaves the code alone; 92
+  // sits in the middle of it.
+  "fmt": { "singleQuote": true, "semiColons": false, "lineWidth": 92 },
   "lint": { "rules": { "tags": ["fresh", "recommended"] } },
   "exclude": ["**/_fresh/*", "static/ui"],
   "imports": {
@@ -37,8 +45,20 @@
     "jsx": "precompile",
     "jsxImportSource": "preact",
     "jsxPrecompileSkipElements": [
-      "a", "img", "source", "body", "html", "head", "title", "meta",
-      "script", "link", "style", "base", "noscript", "template"
+      "a",
+      "img",
+      "source",
+      "body",
+      "html",
+      "head",
+      "title",
+      "meta",
+      "script",
+      "link",
+      "style",
+      "base",
+      "noscript",
+      "template"
     ],
     "types": ["vite/client"]
   }

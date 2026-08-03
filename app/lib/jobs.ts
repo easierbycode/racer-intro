@@ -146,6 +146,8 @@ function platformList(value: string | undefined): string | undefined {
  */
 export function cliFor(action: JobAction, a: Record<string, string>): string[] {
   const flag = (name: string, value?: string) => (value ? [`--${name}`, value] : [])
+  // deno-fmt-ignore -- each `'--flag', value` pair belongs on one line; fmt
+  // would explode these arrays to one element per line and bury the pairing.
   switch (action) {
     case 'record':
       return [
