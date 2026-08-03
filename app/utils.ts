@@ -1,4 +1,5 @@
-import { createDefine } from 'fresh'
+// "@fresh/core", not "fresh" — see the note in deno.json's imports.
+import { createDefine } from '@fresh/core'
 
 // deno-lint-ignore no-empty-interface
 export interface State {}

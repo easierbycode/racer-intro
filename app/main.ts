@@ -1,4 +1,5 @@
-import { App, staticFiles } from 'fresh'
+// "@fresh/core", not "fresh" — see the note in deno.json's imports.
+import { App, staticFiles } from '@fresh/core'
 import type { State } from './utils.ts'
 
 export const app = new App<State>()

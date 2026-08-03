@@ -1,5 +1,10 @@
 {
-  "nodeModulesDir": "manual",
+  // "auto", not "manual": there is no package.json here, so no npm client
+  // ever populates app/node_modules, and manual mode then fails to resolve
+  // Fresh's own npm dependencies (npm:@opentelemetry/api) unless you
+  // remember to run `deno install` first. Auto lets Deno install them on
+  // demand, so `deno task dev` works from a fresh clone.
+  "nodeModulesDir": "auto",
   "tasks": {
     "check": "deno fmt --check . && deno lint . && deno check",
     "dev": "vite",
@@ -12,7 +17,17 @@
   "imports": {
     "@/": "./",
     "@std/path": "jsr:@std/path@^1.0.0",
+    // Import Fresh as "@fresh/core", never the bare "fresh". This app lives
+    // inside a repo whose npm node_modules carries fresh@2.0.0 (the unrelated
+    // Express-era "HTTP response freshness testing" package). Vite resolves
+    // bare specifiers by walking up from app/, finds that one first and wins
+    // over Deno's import map, so `import { createDefine } from 'fresh'` loads
+    // the wrong module and dies with "createDefine is not a function". A
+    // scoped name cannot collide with it — the same reason @fresh/plugin-vite
+    // has always resolved fine. The bare alias stays mapped for `deno task
+    // update` and any Fresh codegen that assumes it.
     "fresh": "jsr:@fresh/core@^2.3.3",
+    "@fresh/core": "jsr:@fresh/core@^2.3.3",
     "preact": "npm:preact@^10.29.1",
     "@fresh/plugin-vite": "jsr:@fresh/plugin-vite@^1.1.2",
     "vite": "npm:vite@^7.1.3"
