@@ -58,6 +58,17 @@ body {
   box-shadow: 0 0 24px rgba(120, 255, 90, 0.16);
 }
 
+/* Fullscreen (the `f` shortcut): drop the deck framing so the game fills the
+   screen instead of sitting in a 4:3 box inside a green border. */
+.game-embed:fullscreen {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 #panel {
   min-height: 560px;
 }

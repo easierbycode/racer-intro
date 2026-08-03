@@ -1,4 +1,5 @@
 import { define } from '../utils.ts'
+import GameEmbed from '../islands/GameEmbed.tsx'
 
 // The control panel itself is a 5velte-ph4ser (Svelte 5 + Phaser 4) app —
 // built by `deno task ui:build` at the repo root into static/ui/panel.js
@@ -12,12 +13,8 @@ export default define.page(function Home() {
   return (
     <div class='deck'>
       <h1>RACER CONTROL DECK</h1>
-      <iframe
-        class='game-embed'
-        src={embed}
-        title='racer intro'
-        allow='autoplay'
-      />
+      {/* island: `f` toggles this preview fullscreen */}
+      <GameEmbed src={embed} />
       <div id='panel'>
         <div class='panel-note'>
           panel bundle not found — build it with <code>deno task ui:build</code>{' '}
