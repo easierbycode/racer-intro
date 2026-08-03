@@ -6,6 +6,20 @@
   const H = 560
   const FONT = 'Orbitron, "Courier New", ui-monospace, monospace'
 
+  /*
+   * A canvas is a bitmap, so on a DPR-2 display a 620x560 backing store is
+   * upscaled 2x by the browser and every glyph goes soft. Build the game at
+   * device resolution instead and let the Scale Manager hand the canvas back
+   * at 620x560 CSS: `zoom` multiplies only the style size, "the canvas pixel
+   * size remains untouched" (ScaleManager.js). All layout therefore runs
+   * through px(), so text rasterises at its true device size rather than
+   * being scaled up after the fact. Phaser owns the downscale rather than
+   * CSS on the canvas element, so displayScale keeps mapping pointer events
+   * onto the buttons.
+   */
+  const DPR = Math.min(3, Math.max(1, Math.round(globalThis.devicePixelRatio || 1)))
+  const px = (n) => n * DPR
+
   // CMG launcher palette (cmg static/dashboard.css) — Xbox-blade greens.
   const C = {
     bg: '#020a04',
@@ -148,10 +162,10 @@
 <div class="panel-root">
   <div class="canvas-host" bind:this={host}>
     {#if host}
-      <Game width={W} height={H} parent={host} backgroundColor={C.bg}>
+      <Game width={px(W)} height={px(H)} parent={host} backgroundColor={C.bg} scale={{ zoom: 1 / DPR }}>
         <Scene key="panel">
-          <Text x={20} y={18} text="CONTROL DECK" fontFamily={FONT} fontSize="22px" fontStyle="800" color={C.greenHex} stroke={C.glowHex} strokeThickness={1} />
-          <Text x={20} y={46} text={modeLine} fontFamily={FONT} fontSize="11px" color={C.textDim} />
+          <Text x={px(20)} y={px(18)} text="CONTROL DECK" fontFamily={FONT} fontSize={`${px(22)}px`} fontStyle="800" color={C.greenHex} stroke={C.glowHex} strokeThickness={px(1)} />
+          <Text x={px(20)} y={px(46)} text={modeLine} fontFamily={FONT} fontSize={`${px(11)}px`} color={C.textDim} />
 
           {#each buttons as b, i (b.id)}
             <!--
@@ -162,35 +176,35 @@
               (setAlpha exists) rather than fillAlpha.
             -->
             <Rectangle
-              x={W / 2}
-              y={92 + i * 50}
-              width={W - 40}
-              height={42}
+              x={px(W / 2)}
+              y={px(92 + i * 50)}
+              width={px(W - 40)}
+              height={px(42)}
               fillColor={hovered === b.id ? b.hover : b.color}
               alpha={hovered === b.id ? 1 : 0.85}
               strokeColor={hovered === b.id ? C.strokeHot : C.stroke}
-              strokeWidth={2}
+              strokeWidth={px(2)}
               interactive={true}
               onpointerover={() => (hovered = b.id)}
               onpointerout={() => (hovered = null)}
               onpointerdown={b.act}
             />
             <Text
-              x={W / 2}
-              y={92 + i * 50}
+              x={px(W / 2)}
+              y={px(92 + i * 50)}
               originX={0.5}
               originY={0.5}
               text={b.label}
               fontFamily={FONT}
-              fontSize="15px"
+              fontSize={`${px(15)}px`}
               fontStyle="bold"
               color={hovered === b.id ? C.bladeHi : C.text}
             />
           {/each}
 
-          <Rectangle x={W / 2} y={487} width={W - 40} height={130} fillColor={C.panel} strokeColor={C.stroke} strokeWidth={2} />
-          <Text x={26} y={430} text={statusLine} fontFamily={FONT} fontSize="13px" fontStyle="bold" color={statusColor} />
-          <Text x={26} y={450} text={logTail} fontFamily={FONT} fontSize="10px" color="#d6ffb0" lineSpacing={2} />
+          <Rectangle x={px(W / 2)} y={px(487)} width={px(W - 40)} height={px(130)} fillColor={C.panel} strokeColor={C.stroke} strokeWidth={px(2)} />
+          <Text x={px(26)} y={px(430)} text={statusLine} fontFamily={FONT} fontSize={`${px(13)}px`} fontStyle="bold" color={statusColor} />
+          <Text x={px(26)} y={px(450)} text={logTail} fontFamily={FONT} fontSize={`${px(10)}px`} color="#d6ffb0" lineSpacing={px(2)} />
         </Scene>
       </Game>
     {/if}
