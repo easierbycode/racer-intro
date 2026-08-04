@@ -74,6 +74,7 @@ deno task record --scene racer-intro     # → out/racer-intro.raw.mp4 (CFR 60, 
 deno task transcode --input out/racer-intro.raw.mp4   # → 1080x1920 reel + cover.jpg
 deno task post --platform instagram --video out/racer-intro.reel.mp4 --caption "..."
 deno task post --platform tiktok --video out/racer-intro.reel.mp4
+deno task post --platform instagram --check   # credentials only — records and publishes nothing
 deno task pipeline --scene racer-intro --post instagram,tiktok --caption "..."
 deno task slides --tutorial tools/slides/examples/hello-canvas.json   # typed-code tutorial video
 ```
@@ -104,6 +105,10 @@ deno task slides --tutorial tools/slides/examples/hello-canvas.json   # typed-co
   ngrok tunnel automatically (or pass `--video-url` if hosted). TikTok uses
   the Content Posting API (env `TIKTOK_ACCESS_TOKEN`); unaudited apps are
   limited to `SELF_ONLY` visibility, the default. `--dry-run` everywhere.
+  `--check` hits the API with nothing but the credentials — it prints the
+  account it resolved to (and Instagram's remaining 24h publishing quota),
+  which is the quick way to tell a stale token from a broken pipeline. The
+  **Check social credentials** workflow runs it against the repo secrets.
 - **slides** ([tools/slides](tools/slides)) renders a coding-tutorial
   typing video from a Tutorial JSON (same shape as
   [pablo.gg's GPT-generated reels scripts](https://pablo.gg/en/blog/coding/creating-instagram-reels-coding-tutorials-automatically-with-openais-gpt/))

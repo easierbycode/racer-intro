@@ -57,6 +57,40 @@ async function graphCall(
   return body as Record<string, unknown>
 }
 
+/**
+ * Cheapest possible proof that IG_ACCESS_TOKEN + IG_USER_ID work: two GETs,
+ * nothing published. Worth having because the real failure modes — expired
+ * 60-day token, wrong id, missing instagram_content_publish — all surface
+ * identically, as a Graph API error deep inside a CI job that has already
+ * spent five minutes recording.
+ */
+export async function checkCredentials(
+  creds: IgCredentials,
+): Promise<{ username: string; quotaUsed?: number; quotaTotal?: number }> {
+  const base = graphBase(creds)
+  const { username } = await graphCall(
+    `${base}/${creds.igUserId}?fields=username`,
+    creds.accessToken,
+  ) as { username: string }
+
+  // The publishing quota needs instagram_content_publish, so reading it also
+  // proves the scope is there — /username alone passes on a token that can
+  // read but not post. Non-fatal: an unreadable quota is still a live token.
+  let quotaUsed: number | undefined
+  let quotaTotal: number | undefined
+  try {
+    const res = await graphCall(
+      `${base}/${creds.igUserId}/content_publishing_limit?fields=quota_usage,config`,
+      creds.accessToken,
+    ) as { data?: { quota_usage?: number; config?: { quota_total?: number } }[] }
+    quotaUsed = res.data?.[0]?.quota_usage
+    quotaTotal = res.data?.[0]?.config?.quota_total
+  } catch {
+    // leave both undefined — reported as "quota unavailable"
+  }
+  return { username, quotaUsed, quotaTotal }
+}
+
 export async function postReel(
   creds: IgCredentials,
   opts: IgReelOptions,

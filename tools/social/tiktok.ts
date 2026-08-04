@@ -43,6 +43,17 @@ async function api(
   return (json as { data?: Record<string, unknown> }).data ?? {}
 }
 
+/** Token check with no upload — the same creator query postVideo opens with. */
+export async function checkCredentials(
+  accessToken: string,
+): Promise<{ nickname?: string; privacyLevels: string[] }> {
+  const creator = await api(accessToken, '/post/publish/creator_info/query/')
+  return {
+    nickname: creator.creator_nickname as string | undefined,
+    privacyLevels: (creator.privacy_level_options as string[] | undefined) ?? [],
+  }
+}
+
 export async function postVideo(
   opts: TikTokOptions,
 ): Promise<{ publishId: string; status: string }> {

@@ -11,13 +11,13 @@
 
 import { parseArgs } from '@std/cli/parse-args'
 import { resolve, SEPARATOR } from '@std/path'
-import { postReel } from './instagram.ts'
-import { postVideo } from './tiktok.ts'
+import { checkCredentials as checkIg, postReel } from './instagram.ts'
+import { checkCredentials as checkTikTok, postVideo } from './tiktok.ts'
 import { serveViaTunnel } from './tunnel.ts'
 
 const args = parseArgs(Deno.args, {
   string: ['platform', 'video', 'cover', 'caption', 'video-url', 'cover-url', 'privacy'],
-  boolean: ['help', 'dry-run'],
+  boolean: ['help', 'dry-run', 'check'],
 })
 
 if (args.help || !args.platform) {
@@ -30,6 +30,7 @@ Usage: deno task post --platform instagram|tiktok --video <reel.mp4> [options]
   --video-url <url>   (instagram) already-public video URL — skips the tunnel
   --cover-url <url>   (instagram) already-public cover URL
   --privacy <level>   (tiktok) SELF_ONLY (default) | PUBLIC_TO_EVERYONE | ...
+  --check             verify the credentials against the API and exit
   --dry-run           validate everything, post nothing`)
   Deno.exit(args.help ? 0 : 1)
 }
@@ -60,6 +61,36 @@ const underOut = (p: string): string => {
 }
 
 const platform = args.platform.toLowerCase()
+
+// --check answers "do the secrets work?" on its own: no recording, no
+// tunnel, no upload, no file arguments. An expired token, the wrong
+// IG_USER_ID and a missing publish scope all fail here in a second instead
+// of five minutes into a CI run that has already recorded a clip.
+if (args.check) {
+  try {
+    if (platform === 'instagram') {
+      const { username, quotaUsed, quotaTotal } = await checkIg({
+        accessToken: need('IG_ACCESS_TOKEN'),
+        igUserId: need('IG_USER_ID'),
+      })
+      const quota = quotaTotal === undefined
+        ? 'publishing quota unavailable (is instagram_content_publish granted?)'
+        : `${quotaUsed ?? 0}/${quotaTotal} posts used in the last 24h`
+      console.log(`instagram ok: @${username} — ${quota}`)
+    } else if (platform === 'tiktok') {
+      const { nickname, privacyLevels } = await checkTikTok(need('TIKTOK_ACCESS_TOKEN'))
+      const levels = privacyLevels.length ? privacyLevels.join(', ') : 'none reported'
+      console.log(`tiktok ok: ${nickname ?? '(no nickname)'} — privacy levels: ${levels}`)
+    } else {
+      console.error(`unknown platform "${args.platform}" — use instagram or tiktok`)
+      Deno.exit(1)
+    }
+  } catch (err) {
+    console.error(`credential check failed: ${err instanceof Error ? err.message : err}`)
+    Deno.exit(1)
+  }
+  Deno.exit(0)
+}
 
 if (platform === 'instagram') {
   let videoUrl = args['video-url']
